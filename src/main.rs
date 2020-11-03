@@ -15,6 +15,14 @@ fn main() {
 
 struct Snake {
     speed: f32,
+    direction: SnakeDirection
+}
+
+enum SnakeDirection {
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT
 }
 
 enum Collider {
@@ -25,30 +33,36 @@ enum Collider {
 fn snake_movement(
     time: Res<Time>,
     keyboard_input: Res<Input<KeyCode>>,
-    mut query: Query<(&Snake, &mut Transform)>,
+    mut query: Query<(&mut Snake, &mut Transform)>,
 ) {
-    for (snake, mut transform) in query.iter_mut() {
+    for (mut snake, mut transform) in query.iter_mut() {
         let mut direction_x = 0.0;
         let mut direction_y = 0.0;
-        
+        let timer = (time.seconds_since_startup * 100.00).floor().round();
+        if timer % 50.0 == 0.0 {
+            println!("The value of x is: {}", timer);
+            match snake.direction {
+                SnakeDirection::UP => transform.translation += Vec3::new(0.0, 25.0, 0.0),
+                SnakeDirection::LEFT => transform.translation += Vec3::new(-25.0, 0.0, 0.0),
+                SnakeDirection::RIGHT => transform.translation += Vec3::new(25.0, 0.0, 0.0),
+                SnakeDirection::DOWN => transform.translation += Vec3::new(0.0, -25.0, 0.0),
+                _ => println!("SNAKE!!!!!!"),
+            }
+        }
         if keyboard_input.pressed(KeyCode::Left) {
-            println!("LEFT");
-            direction_x -= 1.0;
+            snake.direction = SnakeDirection::LEFT;
         }
 
         if keyboard_input.pressed(KeyCode::Right) {
-            println!("RIGHT");
-            direction_x += 1.0;
+            snake.direction = SnakeDirection::RIGHT;
         }
 
         if keyboard_input.pressed(KeyCode::Down) {
-            println!("DOWN");
-            direction_y -= 1.0;
+            snake.direction = SnakeDirection::DOWN;
         }
 
         if keyboard_input.pressed(KeyCode::Up) {
-            println!("UP");
-            direction_y += 1.0;
+            snake.direction = SnakeDirection::UP;
         }
 
         transform.translation += Vec3::new(direction_x, direction_y, 0.0);
@@ -69,7 +83,7 @@ fn setup(
             sprite: Sprite::new(Vec2::new(25.0, 25.0)),
             ..Default::default()
         })
-        .with(Snake { speed: 500.0 })
+        .with(Snake { speed: 500.0, direction: SnakeDirection::RIGHT })
         .with(Collider::Snake);
         let wall_material = materials.add(Color::rgb(0.8, 0.8, 0.8).into());
         let wall_thickness = 10.0;
