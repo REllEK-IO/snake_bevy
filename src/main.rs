@@ -3,6 +3,7 @@ use bevy::{
     render::pass::ClearColor,
     sprite::collide_aabb::{collide, Collision},
 };
+use rand::prelude::*;
 
 fn main() {
     App::build()
@@ -17,6 +18,7 @@ fn main() {
         .add_startup_system(setup.system())
         .add_system(snake_movement.system())
         .add_system(snake_collision.system())
+        .add_system(fruit_spawner.system())
         .run();
 }
 
@@ -25,11 +27,15 @@ struct Snake {
     direction: SnakeDirection,
 }
 
+struct Score {
+    value: usize,
+}
+#[derive(Default)]
 struct GameState{
     difficulty: f64,
-    score: u8,
+    score: usize,
     playing: bool,
-    play_area: f32
+    play_area: f32,
 }
 struct Fruit {
     blink_state: bool,
@@ -49,6 +55,7 @@ enum SnakeDirection {
 enum Collider {
     Solid,
     Snake,
+    Fruit,
 }
 
 fn snake_movement(
@@ -99,36 +106,71 @@ fn snake_movement(
     }
 }
 
+// fn snake_tail(
+//     game: Ref<GameState>,
+//     snake_query: Query<(&Snake, &Transform, &Sprite)>,
+// ){
+
+// }
+
+fn fruit_spawner(
+    mut commands: Commands,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut game: ResMut<GameState>,
+    fruit_query: Query<&Fruit>,
+){
+    let mut rng = rand::thread_rng();
+    let rng_x: f32 = rng.gen();
+    let rng_y: f32 = rng.gen();
+    let rand_x = (rng_x * game.play_area - 300.0).floor().round();
+    let rand_y = (rng_x * game.play_area - 300.0).floor().round();
+    
+
+    if fruit_query.iter().len() == 0 {
+        commands
+            .spawn(SpriteComponents {
+                material: materials.add(Color::rgb(1.0, 0.0, 0.0).into()),
+                transform: Transform::from_translation(Vec3::new(rand_x, rand_y, 0.0)),
+                sprite: Sprite::new(Vec2::new(25.0, 25.0)),
+                ..Default::default()
+            })
+            .with(Fruit { blink_state: false} )
+            .with(Collider::Fruit);
+        game.score += 1;
+        println!("SCORE: {}", game.score);
+    }
+}
+
 fn snake_collision(
     mut commands: Commands,
     mut snake_query: Query<(Entity, &mut Snake, &Transform, &Sprite)>,
-    collider_query: Query<(Entity, &Collider, &Transform, &Sprite)>
+    collider_query: Query<(Entity, &Collider, &Transform, &Sprite)>,
+    mut fruit_query: Query<(Entity, &Fruit)>,
 ){
     for (snake_entity, mut snake, snake_transform, snake_sprite) in snake_query.iter_mut() {
         let mut snake_offset = snake_transform.clone();
-        println!("OFFSET {}", snake_transform.translation);
-        if (snake_transform.translation.x() > 0.0) {
+        if snake_transform.translation.x() > 0.0 {
             snake_offset.translation += Vec3::new(-1.0, 0.0, 0.0);
         }
-        if (snake_transform.translation.x() < 0.0) {
+        if snake_transform.translation.x() < 0.0 {
             snake_offset.translation += Vec3::new(1.0, 0.0, 0.0);
         }
-        if (snake_transform.translation.y() > 0.0) {
+        if snake_transform.translation.y() > 0.0 {
             snake_offset.translation += Vec3::new(0.0, -1.0, 0.0);
         }
-        if (snake_transform.translation.y() < 0.0) {
+        if snake_transform.translation.y() < 0.0 {
             snake_offset.translation += Vec3::new(0.0,1.0, 0.0);
         }
 
         for (collider_entity, collider, collider_transform, collider_sprite) in collider_query.iter() {
+            let collision = collide(
+                snake_offset.translation,
+                snake_sprite.size,
+                collider_transform.translation,
+                collider_sprite.size
+            );
             match collider {
                 Collider::Solid => {
-                    let collision = collide(
-                        snake_offset.translation,
-                        snake_sprite.size,
-                        collider_transform.translation,
-                        collider_sprite.size
-                    );
                     match collision {
                         None => (),
                         _ => {
@@ -137,6 +179,17 @@ fn snake_collision(
                         },
                     }
                 },
+                Collider::Fruit => {
+                    match collision {
+                        None => (),
+                        _ => {
+                            for (fruit_entity, fruit) in fruit_query.iter() {
+                                commands.despawn(fruit_entity);
+                            }
+                            println!("NOM!");
+                        },
+                    }
+                }
                 _ => (),
             }
         }
@@ -147,7 +200,7 @@ fn setup(
     mut commands: Commands,
     game: Res<GameState>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-){
+){  
     commands
         .spawn(Camera2dComponents::default())
         .spawn(UiCameraComponents::default())
