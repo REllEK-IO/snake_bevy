@@ -25,6 +25,7 @@ fn main() {
 struct Snake {
     head_size: f32,
     direction: SnakeDirection,
+    movement_locked: bool,
 }
 
 struct Score {
@@ -74,33 +75,46 @@ fn snake_movement(
                 SnakeDirection::DOWN => transform.translation += Vec3::new(0.0, -1.0 * snake.head_size, 0.0),
                 _ => println!("SNAKE!!!!!!"),
             }
+            snake.movement_locked = false;
         }
 
-        if keyboard_input.pressed(KeyCode::Left) {
+        if keyboard_input.pressed(KeyCode::Left) && !snake.movement_locked {
             match snake.direction {
                 SnakeDirection::RIGHT => (),
-                _ => snake.direction = SnakeDirection::LEFT,
+                _ => {
+                        snake.direction = SnakeDirection::LEFT;
+                        snake.movement_locked = true;
+                    }
             }
         }
 
-        if keyboard_input.pressed(KeyCode::Right) {
+        if keyboard_input.pressed(KeyCode::Right) && !snake.movement_locked {
             match snake.direction {
                 SnakeDirection::LEFT => (),
-                _ => snake.direction = SnakeDirection::RIGHT,
+                _ => {
+                        snake.direction = SnakeDirection::RIGHT;
+                        snake.movement_locked = true;
+                    }
             }
         }
 
-        if keyboard_input.pressed(KeyCode::Down) {
+        if keyboard_input.pressed(KeyCode::Down) && !snake.movement_locked {
             match snake.direction {
                 SnakeDirection::UP => (),
-                _ => snake.direction = SnakeDirection::DOWN,
+                _ => {
+                        snake.direction = SnakeDirection::DOWN;
+                        snake.movement_locked = true;
+                    }
             }
         }
 
-        if keyboard_input.pressed(KeyCode::Up) {
+        if keyboard_input.pressed(KeyCode::Up) && !snake.movement_locked {
             match snake.direction {
                 SnakeDirection::DOWN => (),
-                _ => snake.direction = SnakeDirection::UP,
+                _ => {
+                        snake.direction = SnakeDirection::UP;
+                        snake.movement_locked = true;
+                    }
             }
         }
     }
@@ -210,7 +224,7 @@ fn setup(
             sprite: Sprite::new(Vec2::new(25.0, 25.0)),
             ..Default::default()
         })
-        .with(Snake { head_size: 25.0, direction: SnakeDirection::RIGHT })
+        .with(Snake { head_size: 25.0, direction: SnakeDirection::RIGHT, movement_locked: false })
         .with(Collider::Snake);
         let wall_material = materials.add(Color::rgb(0.8, 0.8, 0.8).into());
         let wall_thickness = 25.0;
