@@ -10,7 +10,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_resource(ClearColor(Color::BLACK))
         .add_resource(GameState { 
-            difficulty: 50.0,
+            difficulty: 25.0,
             score: 0,
             playing: true, 
             play_area: 600.0,
@@ -133,7 +133,7 @@ fn fruit_spawner(
     let mut rng = rand::thread_rng();
     let rng_x: f32 = rng.gen();
     let rng_y: f32 = rng.gen();
-    let max = (game.play_area / 25.0).floor().round();
+    let max = (game.play_area / 25.0).floor().round() - 1.0;
     let rand_x = (rng_x * max).floor().round() * 25.0 - (game.play_area / 2.0 - 25.0);
     let rand_y = (rng_y * max).floor().round() * 25.0 - (game.play_area / 2.0 - 25.0);
 
@@ -172,7 +172,7 @@ fn snake_collision(
             snake_offset += Vec3::new(0.0,1.0, 0.0);
         }
 
-        // Need an inclusive collider snake offset is a hack
+        // Need an inclusive collider snake offset is a hack https://docs.rs/bevy_sprite/0.3.0/src/bevy_sprite/collide_aabb.rs.html#13
         for (collider_entity, collider, collider_transform, collider_sprite) in collider_query.iter() {
             let collision = collide(
                 snake_offset,
