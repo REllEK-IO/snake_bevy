@@ -28,9 +28,6 @@ struct Snake {
     movement_locked: bool,
 }
 
-struct Score {
-    value: usize,
-}
 #[derive(Default)]
 struct GameState{
     difficulty: f64,
@@ -130,15 +127,15 @@ fn snake_movement(
 fn fruit_spawner(
     mut commands: Commands,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    mut game: ResMut<GameState>,
+    game: Res<GameState>,
     fruit_query: Query<&Fruit>,
 ){
     let mut rng = rand::thread_rng();
     let rng_x: f32 = rng.gen();
     let rng_y: f32 = rng.gen();
-    let rand_x = (rng_x * game.play_area - 300.0).floor().round();
-    let rand_y = (rng_x * game.play_area - 300.0).floor().round();
-    
+    let max = (game.play_area / 25.0).floor().round();
+    let rand_x = (rng_x * max).floor().round() * 25.0 - (game.play_area / 2.0 - 25.0);
+    let rand_y = (rng_y * max).floor().round() * 25.0 - (game.play_area / 2.0 - 25.0);
 
     if fruit_query.iter().len() == 0 {
         commands
@@ -150,35 +147,35 @@ fn fruit_spawner(
             })
             .with(Fruit { blink_state: false} )
             .with(Collider::Fruit);
-        game.score += 1;
-        println!("SCORE: {}", game.score);
     }
 }
 
 fn snake_collision(
     mut commands: Commands,
+    mut game: ResMut<GameState>,
     mut snake_query: Query<(Entity, &mut Snake, &Transform, &Sprite)>,
     collider_query: Query<(Entity, &Collider, &Transform, &Sprite)>,
     mut fruit_query: Query<(Entity, &Fruit)>,
 ){
     for (snake_entity, mut snake, snake_transform, snake_sprite) in snake_query.iter_mut() {
-        let mut snake_offset = snake_transform.clone();
+        let mut snake_offset = snake_transform.translation.clone();
         if snake_transform.translation.x() > 0.0 {
-            snake_offset.translation += Vec3::new(-1.0, 0.0, 0.0);
+            snake_offset += Vec3::new(-1.0, 0.0, 0.0);
         }
         if snake_transform.translation.x() < 0.0 {
-            snake_offset.translation += Vec3::new(1.0, 0.0, 0.0);
+            snake_offset += Vec3::new(1.0, 0.0, 0.0);
         }
         if snake_transform.translation.y() > 0.0 {
-            snake_offset.translation += Vec3::new(0.0, -1.0, 0.0);
+            snake_offset += Vec3::new(0.0, -1.0, 0.0);
         }
         if snake_transform.translation.y() < 0.0 {
-            snake_offset.translation += Vec3::new(0.0,1.0, 0.0);
+            snake_offset += Vec3::new(0.0,1.0, 0.0);
         }
 
+        // Need an inclusive collider snake offset is a hack
         for (collider_entity, collider, collider_transform, collider_sprite) in collider_query.iter() {
             let collision = collide(
-                snake_offset.translation,
+                snake_offset,
                 snake_sprite.size,
                 collider_transform.translation,
                 collider_sprite.size
@@ -199,8 +196,9 @@ fn snake_collision(
                         _ => {
                             for (fruit_entity, fruit) in fruit_query.iter() {
                                 commands.despawn(fruit_entity);
+                                game.score += 1;
                             }
-                            println!("NOM!");
+                            println!("NOM! SCORE: {}", game.score);
                         },
                     }
                 }
