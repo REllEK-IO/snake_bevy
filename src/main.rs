@@ -1,9 +1,9 @@
 use bevy::{
     prelude::*,
     render::pass::ClearColor,
-    sprite::collide_aabb::{collide, Collision},
 };
 use rand::prelude::*;
+mod collision_inclusive;
 
 fn main() {
     App::build()
@@ -142,7 +142,7 @@ fn fruit_spawner(
             .spawn(SpriteComponents {
                 material: materials.add(Color::rgb(1.0, 0.0, 0.0).into()),
                 transform: Transform::from_translation(Vec3::new(rand_x, rand_y, 0.0)),
-                sprite: Sprite::new(Vec2::new(25.0, 25.0)),
+                sprite: Sprite::new(Vec2::new(20.0, 20.0)),
                 ..Default::default()
             })
             .with(Fruit { blink_state: false} )
@@ -174,7 +174,8 @@ fn snake_collision(
 
         // Need an inclusive collider snake offset is a hack https://docs.rs/bevy_sprite/0.3.0/src/bevy_sprite/collide_aabb.rs.html#13
         for (collider_entity, collider, collider_transform, collider_sprite) in collider_query.iter() {
-            let collision = collide(
+            
+            let collision = collision_inclusive::collide_inc(
                 snake_offset,
                 snake_sprite.size,
                 collider_transform.translation,
@@ -184,6 +185,7 @@ fn snake_collision(
                 Collider::Solid => {
                     match collision {
                         None => (),
+                        Some(collision_inclusive::Collision::Inside) => print!("INSIDE!"),
                         _ => {
                             // Collides with wall or solid, despawns snake head
                             commands.despawn(snake_entity);
@@ -193,6 +195,7 @@ fn snake_collision(
                 Collider::Fruit => {
                     match collision {
                         None => (),
+                        Some(collision_inclusive::Collision::Inside) => print!("INSIDE!"),
                         _ => {
                             for (fruit_entity, fruit) in fruit_query.iter() {
                                 commands.despawn(fruit_entity);
