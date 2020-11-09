@@ -47,7 +47,7 @@ pub fn collide_inc(a_pos: Vec3, a_size: Vec2, b_pos: Vec3, b_size: Vec2) -> Opti
         match (x_collision, y_collision) {
             (Some(x_collision), Some(y_collision)) => {
                 if y_depth < x_depth {
-                    Some(y_collision)
+                    Some(y_collision) 
                 } else {
                     Some(x_collision)
                 }

@@ -14,6 +14,10 @@ fn main() {
             score: 0,
             playing: true, 
             play_area: 600.0,
+            cell_size: 25.0
+        })
+        .add_resource( Grid {
+            cells: Vec::new()
         })
         .add_startup_system(setup.system())
         .add_system(snake_movement.system())
@@ -34,6 +38,7 @@ struct GameState{
     score: usize,
     playing: bool,
     play_area: f32,
+    cell_size: f64,
 }
 struct Fruit {
     blink_state: bool,
@@ -43,11 +48,30 @@ struct Tail {
     position: u8,
 }
 
+
+struct Cell {
+    position: Vec2,
+    transformation: Vec3,
+}
+
+#[derive(Default)]
+struct Grid {
+    cells: Vec<Cell>
+}
+
 enum SnakeDirection {
     UP,
     DOWN,
     LEFT,
     RIGHT
+}
+
+fn grid_init(
+    mut commands: Commands,
+    game: Res<GameState>,
+    grid: Res<Grid>,
+){
+    
 }
 
 enum Collider {
@@ -130,12 +154,13 @@ fn fruit_spawner(
     game: Res<GameState>,
     fruit_query: Query<&Fruit>,
 ){
+    let cell_size = game.cell_size as f32;
     let mut rng = rand::thread_rng();
     let rng_x: f32 = rng.gen();
     let rng_y: f32 = rng.gen();
-    let max = (game.play_area / 25.0).floor().round() - 1.0;
-    let rand_x = (rng_x * max).floor().round() * 25.0 - (game.play_area / 2.0 - 25.0);
-    let rand_y = (rng_y * max).floor().round() * 25.0 - (game.play_area / 2.0 - 25.0);
+    let max = (game.play_area / cell_size).floor().round() - 1.0;
+    let rand_x = (rng_x * max).floor().round() * cell_size - (game.play_area / 2.0 - cell_size);
+    let rand_y = (rng_y * max).floor().round() * cell_size - (game.play_area / 2.0 - cell_size);
 
     if fruit_query.iter().len() == 0 {
         commands
@@ -155,9 +180,9 @@ fn snake_collision(
     mut game: ResMut<GameState>,
     mut snake_query: Query<(Entity, &mut Snake, &Transform, &Sprite)>,
     collider_query: Query<(Entity, &Collider, &Transform, &Sprite)>,
-    mut fruit_query: Query<(Entity, &Fruit)>,
+    fruit_query: Query<(Entity, &Fruit)>,
 ){
-    for (snake_entity, mut snake, snake_transform, snake_sprite) in snake_query.iter_mut() {
+    for (snake_entity, _, snake_transform, snake_sprite) in snake_query.iter_mut() {
         let mut snake_offset = snake_transform.translation.clone();
         if snake_transform.translation.x() > 0.0 {
             snake_offset += Vec3::new(-1.0, 0.0, 0.0);
@@ -173,7 +198,7 @@ fn snake_collision(
         }
 
         // Need an inclusive collider snake offset is a hack https://docs.rs/bevy_sprite/0.3.0/src/bevy_sprite/collide_aabb.rs.html#13
-        for (collider_entity, collider, collider_transform, collider_sprite) in collider_query.iter() {
+        for (_, collider, collider_transform, collider_sprite) in collider_query.iter() {
             
             let collision = collision_inclusive::collide_inc(
                 snake_offset,
@@ -197,7 +222,7 @@ fn snake_collision(
                         None => (),
                         Some(collision_inclusive::Collision::Inside) => print!("INSIDE!"),
                         _ => {
-                            for (fruit_entity, fruit) in fruit_query.iter() {
+                            for (fruit_entity, _) in fruit_query.iter() {
                                 commands.despawn(fruit_entity);
                                 game.score += 1;
                             }
@@ -216,19 +241,20 @@ fn setup(
     game: Res<GameState>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ){  
+    let cell_size = game.cell_size as f32;
     commands
         .spawn(Camera2dComponents::default())
         .spawn(UiCameraComponents::default())
         .spawn(SpriteComponents {
             material: materials.add(Color::rgb(0.0, 1.0, 0.0).into()),
             transform: Transform::from_translation(Vec3::new(0.0, -200.0, 0.0)),
-            sprite: Sprite::new(Vec2::new(25.0, 25.0)),
+            sprite: Sprite::new(Vec2::new(cell_size, cell_size)),
             ..Default::default()
         })
-        .with(Snake { head_size: 25.0, direction: SnakeDirection::RIGHT, movement_locked: false })
+        .with(Snake { head_size: cell_size, direction: SnakeDirection::RIGHT, movement_locked: false })
         .with(Collider::Snake);
         let wall_material = materials.add(Color::rgb(0.8, 0.8, 0.8).into());
-        let wall_thickness = 25.0;
+        let wall_thickness = cell_size;
         let bounds = Vec2::new(game.play_area, game.play_area);
     
     commands
