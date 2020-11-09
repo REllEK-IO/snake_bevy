@@ -20,6 +20,7 @@ fn main() {
             cells: Vec::new()
         })
         .add_startup_system(setup.system())
+        .add_startup_system(grid_init.system())
         .add_system(snake_movement.system())
         .add_system(snake_collision.system())
         .add_system(fruit_spawner.system())
@@ -67,11 +68,33 @@ enum SnakeDirection {
 }
 
 fn grid_init(
-    mut commands: Commands,
     game: Res<GameState>,
-    grid: Res<Grid>,
+    mut grid: ResMut<Grid>,
 ){
-    
+    let play_area = game.play_area as f64;
+    let grid_width = (play_area / game.cell_size / 2.0).round();
+    let mut x = (0.0 - grid_width).round();
+    let mut y = x;
+
+    while x <= grid_width && y <= grid_width{
+        grid.cells.push(Cell { 
+                position: Vec2::new(
+                    x as f32,
+                    y as f32),
+                transformation: Vec3::new(
+                    (x * game.cell_size).round() as f32,
+                    (y * game.cell_size).round() as f32,
+                    0.0)
+        });
+        if x >= grid_width {
+            x = (0.0 - grid_width).round();
+            y += 1.0;
+        }
+        x += 1.0;
+    }
+    for cell in grid.cells.iter() {
+        println!("{} & {}", cell.position, cell.transformation);
+    }
 }
 
 enum Collider {
@@ -158,9 +181,9 @@ fn fruit_spawner(
     let mut rng = rand::thread_rng();
     let rng_x: f32 = rng.gen();
     let rng_y: f32 = rng.gen();
-    let max = (game.play_area / cell_size).floor().round() - 1.0;
-    let rand_x = (rng_x * max).floor().round() * cell_size - (game.play_area / 2.0 - cell_size);
-    let rand_y = (rng_y * max).floor().round() * cell_size - (game.play_area / 2.0 - cell_size);
+    let max = (game.play_area / cell_size).round() - 1.0;
+    let rand_x = (rng_x * max).round() * cell_size - (game.play_area / 2.0 - cell_size);
+    let rand_y = (rng_y * max).round() * cell_size - (game.play_area / 2.0 - cell_size);
 
     if fruit_query.iter().len() == 0 {
         commands
