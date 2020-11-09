@@ -6,7 +6,6 @@ pub enum Collision {
     Right,
     Top,
     Bottom,
-    Inside,
 }
 
 // TODO: ideally we can remove this once bevy gets a physics system

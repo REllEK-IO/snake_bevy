@@ -3,7 +3,6 @@ use bevy::{
     render::pass::ClearColor,
 };
 use rand::prelude::*;
-mod collision_inclusive;
 
 fn main() {
     App::build()
@@ -29,6 +28,7 @@ fn main() {
 
 struct Snake {
     head_size: f32,
+    position: Vec2,
     direction: SnakeDirection,
     movement_locked: bool,
 }
@@ -43,6 +43,7 @@ struct GameState{
 }
 struct Fruit {
     blink_state: bool,
+    position: Vec2,
 }
 
 struct Tail {
@@ -103,6 +104,10 @@ enum Collider {
     Fruit,
 }
 
+fn snake_pos_to_translation(snake_pos: Vec2, c_size: f64) -> Vec3 {
+    return Vec3::new((snake_pos.x() * c_size as f32).floor(), (snake_pos.y() * c_size as f32).floor(), 0.0);
+}
+
 fn snake_movement(
     time: Res<Time>,
     keyboard_input: Res<Input<KeyCode>>,
@@ -113,12 +118,12 @@ fn snake_movement(
         let timer = (time.seconds_since_startup * 100.00).floor().round();
         if timer % game.difficulty == 0.0 && game.playing {
             match snake.direction {
-                SnakeDirection::UP => transform.translation += Vec3::new(0.0, snake.head_size, 0.0),
-                SnakeDirection::LEFT => transform.translation += Vec3::new(-1.0 * snake.head_size, 0.0, 0.0),
-                SnakeDirection::RIGHT => transform.translation += Vec3::new(snake.head_size, 0.0, 0.0),
-                SnakeDirection::DOWN => transform.translation += Vec3::new(0.0, -1.0 * snake.head_size, 0.0),
-                _ => println!("SNAKE!!!!!!"),
+                SnakeDirection::UP => snake.position = Vec2::new(snake.position.x(), snake.position.y() + 1.0),
+                SnakeDirection::LEFT => snake.position = Vec2::new(snake.position.x() - 1.0, snake.position.y()),
+                SnakeDirection::RIGHT => snake.position = Vec2::new(snake.position.x() + 1.0, snake.position.y()),
+                SnakeDirection::DOWN => snake.position = Vec2::new(snake.position.x(), snake.position.y() - 1.0),
             }
+            transform.translation = snake_pos_to_translation(snake.position, game.cell_size);
             snake.movement_locked = false;
         }
 
@@ -193,7 +198,10 @@ fn fruit_spawner(
                 sprite: Sprite::new(Vec2::new(20.0, 20.0)),
                 ..Default::default()
             })
-            .with(Fruit { blink_state: false} )
+            .with(Fruit {
+                blink_state: false,
+                position: Vec2::new((rand_x / cell_size).round(), (rand_y / cell_size).round()),
+            })
             .with(Collider::Fruit);
     }
 }
@@ -201,57 +209,29 @@ fn fruit_spawner(
 fn snake_collision(
     mut commands: Commands,
     mut game: ResMut<GameState>,
-    mut snake_query: Query<(Entity, &mut Snake, &Transform, &Sprite)>,
-    collider_query: Query<(Entity, &Collider, &Transform, &Sprite)>,
+    mut snake_query: Query<(Entity, &mut Snake)>,
+    collider_query: Query<(Entity, &Collider, &Transform)>,
     fruit_query: Query<(Entity, &Fruit)>,
 ){
-    for (snake_entity, _, snake_transform, snake_sprite) in snake_query.iter_mut() {
-        let mut snake_offset = snake_transform.translation.clone();
-        if snake_transform.translation.x() > 0.0 {
-            snake_offset += Vec3::new(-1.0, 0.0, 0.0);
-        }
-        if snake_transform.translation.x() < 0.0 {
-            snake_offset += Vec3::new(1.0, 0.0, 0.0);
-        }
-        if snake_transform.translation.y() > 0.0 {
-            snake_offset += Vec3::new(0.0, -1.0, 0.0);
-        }
-        if snake_transform.translation.y() < 0.0 {
-            snake_offset += Vec3::new(0.0,1.0, 0.0);
-        }
-
-        // Need an inclusive collider snake offset is a hack https://docs.rs/bevy_sprite/0.3.0/src/bevy_sprite/collide_aabb.rs.html#13
-        for (_, collider, collider_transform, collider_sprite) in collider_query.iter() {
-            
-            let collision = collision_inclusive::collide_inc(
-                snake_offset,
-                snake_sprite.size,
-                collider_transform.translation,
-                collider_sprite.size
-            );
+    for (snake_entity, snake) in snake_query.iter_mut() {
+        for (_, collider, collider_transform) in collider_query.iter() {
             match collider {
-                Collider::Solid => {
-                    match collision {
-                        None => (),
-                        Some(collision_inclusive::Collision::Inside) => print!("INSIDE!"),
-                        _ => {
-                            // Collides with wall or solid, despawns snake head
-                            commands.despawn(snake_entity);
-                        },
+                Collider::Snake => {
+                    let grid_max = (game.play_area / game.cell_size as f32 / 2.0).round();
+                    if snake.position.x().abs() == grid_max || snake.position.y().abs() == grid_max{
+                        commands.despawn(snake_entity);  
                     }
                 },
                 Collider::Fruit => {
-                    match collision {
-                        None => (),
-                        Some(collision_inclusive::Collision::Inside) => print!("INSIDE!"),
-                        _ => {
-                            for (fruit_entity, _) in fruit_query.iter() {
-                                commands.despawn(fruit_entity);
-                                game.score += 1;
-                            }
-                            println!("NOM! SCORE: {}", game.score);
-                        },
+                    let fruit_x = (collider_transform.translation.x() / game.cell_size as f32).round();
+                    let fruit_y = (collider_transform.translation.y() / game.cell_size as f32).round();
+                    if fruit_x == snake.position.x() && fruit_y == snake.position.y(){
+                        for (fruit_entity, _) in fruit_query.iter() {
+                            commands.despawn(fruit_entity);
+                            game.score += 1;
+                        }
                     }
+                    println!("NOM! SCORE: {}", game.score);
                 }
                 _ => (),
             }
@@ -265,16 +245,22 @@ fn setup(
     mut materials: ResMut<Assets<ColorMaterial>>,
 ){  
     let cell_size = game.cell_size as f32;
+    let snake_pos = Vec2::new(0.0, -6.0);
     commands
         .spawn(Camera2dComponents::default())
         .spawn(UiCameraComponents::default())
         .spawn(SpriteComponents {
             material: materials.add(Color::rgb(0.0, 1.0, 0.0).into()),
-            transform: Transform::from_translation(Vec3::new(0.0, -200.0, 0.0)),
+            transform: Transform::from_translation(Vec3::new(0.0, snake_pos.y() * game.cell_size as f32, 0.0)),
             sprite: Sprite::new(Vec2::new(cell_size, cell_size)),
             ..Default::default()
         })
-        .with(Snake { head_size: cell_size, direction: SnakeDirection::RIGHT, movement_locked: false })
+        .with(Snake { 
+            head_size: cell_size,
+            direction: SnakeDirection::RIGHT,
+            position: snake_pos,
+            movement_locked: false
+        })
         .with(Collider::Snake);
         let wall_material = materials.add(Color::rgb(0.8, 0.8, 0.8).into());
         let wall_thickness = cell_size;
