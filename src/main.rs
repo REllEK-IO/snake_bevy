@@ -287,6 +287,7 @@ fn snake_collision(
     collider_query: Query<(Entity, &Collider, &Transform)>,
     fruit_query: Query<(Entity, &Fruit)>,
 ){
+    let mut hit = false;
     if timer.0.finished && game.playing {
         for (_, snake) in snake_query.iter_mut() {
             for (_, collider, collider_transform) in collider_query.iter() {
@@ -294,13 +295,13 @@ fn snake_collision(
                     Collider::Snake => {
                         let grid_max = (game.play_area / game.cell_size as f32 / 2.0).round();
                         if snake.position.x().abs() == grid_max || snake.position.y().abs() == grid_max{
-                            game_over.send(EventGameOver{});
+                            hit = true;
                         }
                     },
                     Collider::Tail => {
                         for (_, tail_segment) in tail_query.iter(){
                             if snake.position.x() == tail_segment.position.x() && snake.position.y() == tail_segment.position.y() {
-                                game_over.send(EventGameOver{});
+                                hit = true;
                             }
                         }
                     },
@@ -320,7 +321,11 @@ fn snake_collision(
             }
         }
     }
+    if hit {
+        game_over.send(EventGameOver{});
+    }
 }
+
 
 fn game_over (
     mut commands: Commands,
@@ -336,13 +341,13 @@ fn game_over (
         println!("GAME OVER");
         game.playing = false;
         for (snake_entity, _) in snake_query.iter() {
-            commands.despawn(snake_entity);
+            commands.despawn_recursive(snake_entity);
         }
         for (tail_entity, _) in tail_query.iter() {
-            commands.despawn(tail_entity);
+            commands.despawn_recursive(tail_entity);
         }
         for (fruit_entity, _) in fruit_query.iter() {
-            commands.despawn(fruit_entity);
+            commands.despawn_recursive(fruit_entity);
         }
         restart.send(EventRestart {});
     }
@@ -355,29 +360,31 @@ fn restart (
     mut game: ResMut<GameState>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    for _ in restart_reader.iter(&restart_event) {
-        println!("RESTART");
-        let cell_size = game.cell_size as f32;
-        let snake_pos = Vec2::new(0.0, -6.0);
-        let last_pos = Vec2::new(-1.0, -6.0);
-        commands
-            .spawn(Camera2dComponents::default())
-            .spawn(UiCameraComponents::default())
-            .spawn(SpriteComponents {
-                material: materials.add(Color::rgb(0.0, 1.0, 0.0).into()),
-                transform: Transform::from_translation(Vec3::new(0.0, snake_pos.y() * game.cell_size as f32, 0.0)),
-                sprite: Sprite::new(Vec2::new(cell_size - 2.0, cell_size - 2.0)),
-                ..Default::default()
-            })
-            .with(Snake { 
-                direction: SnakeDirection::RIGHT,
-                position: snake_pos,
-                last_position: last_pos,
-                movement_locked: false,
-                next_move: SnakeDirection::RIGHT
-            })
-            .with(Collider::Snake);
-        game.playing = true;
+    if !game.playing {
+        for _ in restart_reader.iter(&restart_event) {
+            println!("RESTART");
+            let cell_size = game.cell_size as f32;
+            let snake_pos = Vec2::new(0.0, -6.0);
+            let last_pos = Vec2::new(-1.0, -6.0);
+            commands
+                .spawn(Camera2dComponents::default())
+                .spawn(UiCameraComponents::default())
+                .spawn(SpriteComponents {
+                    material: materials.add(Color::rgb(0.0, 1.0, 0.0).into()),
+                    transform: Transform::from_translation(Vec3::new(0.0, snake_pos.y() * game.cell_size as f32, 0.0)),
+                    sprite: Sprite::new(Vec2::new(cell_size - 2.0, cell_size - 2.0)),
+                    ..Default::default()
+                })
+                .with(Snake { 
+                    direction: SnakeDirection::RIGHT,
+                    position: snake_pos,
+                    last_position: last_pos,
+                    movement_locked: false,
+                    next_move: SnakeDirection::RIGHT
+                })
+                .with(Collider::Snake);
+            game.playing = true;
+        }
     }
 }
 
