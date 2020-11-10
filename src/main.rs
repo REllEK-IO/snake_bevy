@@ -22,12 +22,12 @@ fn main() {
         .add_startup_system(setup.system())
         .add_startup_system(grid_init.system())
         .add_system(fruit_spawner.system())
-        .add_system(snake_collision.system())
-        .add_event::<EventGrowTail>()
-        .add_event::<EventMoveTail>()
         .add_system(snake_movement.system())
+        .add_system(snake_collision.system())
         .add_system(grow_tail_listener.system())
         .add_system(move_tail_listener.system())
+        .add_event::<EventGrowTail>()
+        .add_event::<EventMoveTail>()
         .run();
 }
 struct GameTimer(Timer);
@@ -290,7 +290,7 @@ fn snake_collision(
                     },
                     Collider::Tail => {
                         for segment in tail_query.iter(){
-                            if snake.position.x() == segment.position.x() && snake.position.y() == snake.position.y() {
+                            if snake.position.x() == segment.position.x() && snake.position.y() == segment.position.y() {
                                 commands.despawn(snake_entity);
                             }
                         }
