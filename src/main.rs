@@ -15,20 +15,26 @@ fn main() {
             play_area: 600.0,
             cell_size: 25.0
         })
+        .add_resource(GameTimer(Timer::from_seconds(0.25, true)))
         .add_resource( Grid {
             cells: Vec::new()
         })
         .add_startup_system(setup.system())
         .add_startup_system(grid_init.system())
-        .add_system(snake_movement.system())
-        .add_system(snake_collision.system())
         .add_system(fruit_spawner.system())
+        .add_system(snake_collision.system())
+        .add_event::<EventGrowTail>()
+        .add_event::<EventMoveTail>()
+        .add_system(snake_movement.system())
+        .add_system(grow_tail_listener.system())
+        .add_system(move_tail_listener.system())
         .run();
 }
-
+struct GameTimer(Timer);
+struct SnakeTimer(Timer);
 struct Snake {
-    head_size: f32,
     position: Vec2,
+    last_position: Vec2,
     direction: SnakeDirection,
     movement_locked: bool,
 }
@@ -42,14 +48,17 @@ struct GameState{
     cell_size: f64,
 }
 struct Fruit {
-    blink_state: bool,
-    position: Vec2,
 }
 
 struct Tail {
-    position: u8,
+    position: Vec2,
 }
 
+struct EventGrowTail {
+}
+struct EventMoveTail {
+    position: Vec2,
+}
 
 struct Cell {
     position: Vec2,
@@ -66,6 +75,13 @@ enum SnakeDirection {
     DOWN,
     LEFT,
     RIGHT
+}
+
+enum Collider {
+    Solid,
+    Snake,
+    Fruit,
+    Tail
 }
 
 fn grid_init(
@@ -98,11 +114,6 @@ fn grid_init(
     }
 }
 
-enum Collider {
-    Solid,
-    Snake,
-    Fruit,
-}
 
 fn snake_pos_to_translation(snake_pos: Vec2, c_size: f64) -> Vec3 {
     return Vec3::new((snake_pos.x() * c_size as f32).floor(), (snake_pos.y() * c_size as f32).floor(), 0.0);
@@ -110,13 +121,18 @@ fn snake_pos_to_translation(snake_pos: Vec2, c_size: f64) -> Vec3 {
 
 fn snake_movement(
     time: Res<Time>,
+    mut timer: ResMut<GameTimer>,
     keyboard_input: Res<Input<KeyCode>>,
+    mut move_tail: ResMut<Events<EventMoveTail>>,
     game: Res<GameState>,
     mut query: Query<(&mut Snake, &mut Transform)>,
+    // mut tail_query: Query<(&mut Tail, &mut Transform)>,
 ){
-    for (mut snake, mut transform) in query.iter_mut() {
-        let timer = (time.seconds_since_startup * 100.00).floor().round();
-        if timer % game.difficulty == 0.0 && game.playing {
+    timer.0.tick(time.delta_seconds);
+    if timer.0.finished && game.playing {
+        for (mut snake, mut transform) in query.iter_mut() {
+        
+            snake.last_position = snake.position;
             match snake.direction {
                 SnakeDirection::UP => snake.position = Vec2::new(snake.position.x(), snake.position.y() + 1.0),
                 SnakeDirection::LEFT => snake.position = Vec2::new(snake.position.x() - 1.0, snake.position.y()),
@@ -124,9 +140,12 @@ fn snake_movement(
                 SnakeDirection::DOWN => snake.position = Vec2::new(snake.position.x(), snake.position.y() - 1.0),
             }
             transform.translation = snake_pos_to_translation(snake.position, game.cell_size);
+            println!("HIT!");
+            move_tail.send(EventMoveTail{ position: snake.last_position });
             snake.movement_locked = false;
         }
-
+    }
+    for (mut snake, mut transform) in query.iter_mut() {
         if keyboard_input.pressed(KeyCode::Left) && !snake.movement_locked {
             match snake.direction {
                 SnakeDirection::RIGHT => (),
@@ -169,12 +188,57 @@ fn snake_movement(
     }
 }
 
-// fn snake_tail(
-//     game: Ref<GameState>,
-//     snake_query: Query<(&Snake, &Transform, &Sprite)>,
-// ){
+fn move_tail_listener(
+    mut move_reader: Local<EventReader<EventMoveTail>>,
+    move_event: Res<Events<EventMoveTail>>,
+    mut tail_query: Query<(&mut Tail, &mut Transform)>,
+){
+    for move_event in move_reader.iter(&move_event){
+        let mut last_pos = move_event.position;
+        for (mut segment, mut segment_transform) in tail_query.iter_mut(){
+            let next_pos = segment.position;
+            segment.position = last_pos;
+            last_pos = next_pos;
+            segment_transform.translation = Vec3::new(segment.position.x() * 25.0, segment.position.y() * 25.0, 0.0);
+        }
+    }
+}
 
-// }
+fn grow_tail_listener(
+    mut commands: Commands,
+    mut grow_reader: Local<EventReader<EventGrowTail>>,
+    game: Res<GameState>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    grow_event: Res<Events<EventGrowTail>>,
+    snake_query: Query<&Snake>,
+) {
+    for _ in grow_reader.iter(&grow_event){
+        let cell_size = game.cell_size as f32;
+        for snake in snake_query.iter(){
+            // let mut last_pos = snake.position.clone();
+            // for  mut segment in tail_query.iter_mut(){
+            //     let next_pos = segment.position.clone();
+            //     segment.position = last_pos;
+            //     last_pos = next_pos;
+            // }
+            // println!("{}", last_pos);
+            commands.spawn(SpriteComponents {
+                material: materials.add(Color::rgb(0.0, 1.0, 0.0).into()),
+                transform: Transform::from_translation(Vec3::new(
+                    snake.last_position.x() * cell_size,
+                    snake.last_position.y()  * cell_size,
+                    0.0
+                )),
+                    sprite: Sprite::new(Vec2::new(cell_size, cell_size)),
+                    ..Default::default()
+                })
+                .with(Tail{
+                    position: snake.last_position,
+                })
+                .with(Collider::Tail);
+        }
+    }
+}
 
 fn fruit_spawner(
     mut commands: Commands,
@@ -198,42 +262,53 @@ fn fruit_spawner(
                 sprite: Sprite::new(Vec2::new(20.0, 20.0)),
                 ..Default::default()
             })
-            .with(Fruit {
-                blink_state: false,
-                position: Vec2::new((rand_x / cell_size).round(), (rand_y / cell_size).round()),
-            })
+            .with(Fruit {})
             .with(Collider::Fruit);
     }
 }
 
 fn snake_collision(
     mut commands: Commands,
+    time: Res<Time>,
+    mut timer: ResMut<GameTimer>,
     mut game: ResMut<GameState>,
+    mut grow_tail: ResMut<Events<EventGrowTail>>,
     mut snake_query: Query<(Entity, &mut Snake)>,
+    tail_query: Query<&Tail>,
     collider_query: Query<(Entity, &Collider, &Transform)>,
     fruit_query: Query<(Entity, &Fruit)>,
 ){
-    for (snake_entity, snake) in snake_query.iter_mut() {
-        for (_, collider, collider_transform) in collider_query.iter() {
-            match collider {
-                Collider::Snake => {
-                    let grid_max = (game.play_area / game.cell_size as f32 / 2.0).round();
-                    if snake.position.x().abs() == grid_max || snake.position.y().abs() == grid_max{
-                        commands.despawn(snake_entity);  
-                    }
-                },
-                Collider::Fruit => {
-                    let fruit_x = (collider_transform.translation.x() / game.cell_size as f32).round();
-                    let fruit_y = (collider_transform.translation.y() / game.cell_size as f32).round();
-                    if fruit_x == snake.position.x() && fruit_y == snake.position.y(){
-                        for (fruit_entity, _) in fruit_query.iter() {
-                            commands.despawn(fruit_entity);
-                            game.score += 1;
+    if timer.0.finished && game.playing {
+        for (snake_entity, snake) in snake_query.iter_mut() {
+            for (_, collider, collider_transform) in collider_query.iter() {
+                match collider {
+                    Collider::Snake => {
+                        let grid_max = (game.play_area / game.cell_size as f32 / 2.0).round();
+                        if snake.position.x().abs() == grid_max || snake.position.y().abs() == grid_max{
+                            commands.despawn(snake_entity);  
+                        }
+                    },
+                    Collider::Tail => {
+                        for segment in tail_query.iter(){
+                            if snake.position.x() == segment.position.x() && snake.position.y() == snake.position.y() {
+                                commands.despawn(snake_entity);
+                            }
+                        }
+                    },
+                    Collider::Fruit => {
+                        let fruit_x = (collider_transform.translation.x() / game.cell_size as f32).round();
+                        let fruit_y = (collider_transform.translation.y() / game.cell_size as f32).round();
+                        if fruit_x == snake.position.x() && fruit_y == snake.position.y(){
+                            for (fruit_entity, _) in fruit_query.iter() {
+                                commands.despawn(fruit_entity);
+                                game.score += 1;
+                                grow_tail.send(EventGrowTail{});
+                                println!("NOM! SCORE: {}", game.score);
+                            }
                         }
                     }
-                    println!("NOM! SCORE: {}", game.score);
+                    _ => (),
                 }
-                _ => (),
             }
         }
     }
@@ -243,9 +318,10 @@ fn setup(
     mut commands: Commands,
     game: Res<GameState>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-){  
+){
     let cell_size = game.cell_size as f32;
     let snake_pos = Vec2::new(0.0, -6.0);
+    let last_pos = Vec2::new(-1.0, -6.0);
     commands
         .spawn(Camera2dComponents::default())
         .spawn(UiCameraComponents::default())
@@ -256,9 +332,9 @@ fn setup(
             ..Default::default()
         })
         .with(Snake { 
-            head_size: cell_size,
             direction: SnakeDirection::RIGHT,
             position: snake_pos,
+            last_position: last_pos,
             movement_locked: false
         })
         .with(Collider::Snake);
