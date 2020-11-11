@@ -9,7 +9,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_resource(ClearColor(Color::BLACK))
         .add_resource(GameState { 
-            difficulty: 25.0,
+            // difficulty: 25.0,
             score: 0,
             playing: true, 
             play_area: 600.0,
