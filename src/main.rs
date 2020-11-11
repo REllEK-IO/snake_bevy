@@ -360,9 +360,9 @@ fn game_over (
     tail_query: Query<(Entity, &Tail)>,
     fruit_query: Query<(Entity, &Fruit)>
 ) {
-    game.score = 0;
     for _ in game_over_reader.iter(&game_over_event) {
         println!("GAME OVER");
+        game.score = 0;
         game.playing = false;
         for (snake_entity, _) in snake_query.iter() {
             commands.despawn_recursive(snake_entity);
