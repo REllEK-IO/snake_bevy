@@ -28,6 +28,7 @@ fn main() {
         .add_system(snake_collision.system())
         .add_system(grow_tail_listener.system())
         .add_system(move_tail_listener.system())
+        .add_system(update_score.system())
         .add_event::<EventGrowTail>()
         .add_event::<EventMoveTail>()
         .add_event::<EventGameOver>()
@@ -412,10 +413,20 @@ fn restart (
     }
 }
 
+fn update_score (
+    game: Res<GameState>,
+    mut score_query: Query<(&mut Text, &ScoreText)>
+) {
+    for (mut text, _) in score_query.iter_mut() {
+        text.value = format!("Score {}", game.score);
+    }
+}
+
 fn setup(
     mut commands: Commands,
     game: Res<GameState>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    asset_server: Res<AssetServer>
 ){
     let cell_size = game.cell_size as f32;
     let snake_pos = Vec2::new(0.0, -6.0);
@@ -475,4 +486,31 @@ fn setup(
         })
         .with(Collider::Solid);
     println!("SNAKE!");
+
+    commands
+        // 2d camera
+        .spawn(UiCameraComponents::default())
+        // texture
+        .spawn(TextComponents {
+            style: Style {
+                align_self: AlignSelf::FlexStart,
+                position: Rect {
+                    left: Val::Percent(80.0),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            text: Text {
+                value: "Score".to_string(),
+                font: asset_server.load("fonts/arcade.ttf"),
+                style: TextStyle {
+                    font_size: 60.0,
+                    color: Color::WHITE,
+                },
+            },
+            ..Default::default()
+        })
+        .with(ScoreText);
 }
+
+struct ScoreText;
