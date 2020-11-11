@@ -45,7 +45,7 @@ struct Snake {
 
 #[derive(Default)]
 struct GameState{
-    difficulty: f64,
+    // difficulty: f64, Todo with ui
     score: usize,
     playing: bool,
     play_area: f32,
