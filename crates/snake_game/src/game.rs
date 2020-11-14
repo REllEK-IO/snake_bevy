@@ -38,21 +38,18 @@ pub mod game_functions {
             let mut bump_down: usize = 9999999999999;
             let score = &game.score;
             for scores in game.prev_scores.iter() {
-                println!("{} {}", game.score, scores);
                 if scores > score {
                     new_scores.push(*scores);
-                } else if scores < score && bump_down == 9999999999999 {
+                } else if scores <= score && bump_down == 9999999999999 {
                     bump_down = *scores;
                     new_scores.push(game.score);
-                } else {
+                } else if *score != 0{
                     new_scores.push(bump_down);
                     bump_down = *scores;
+                } else {
+                    new_scores.push(0);
                 }
             }
-
-            new_scores.iter().for_each(|item|{
-                println!("{}", item);
-            });
 
             game.prev_scores = new_scores;
             game.score = 0;

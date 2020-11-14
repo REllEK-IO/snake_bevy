@@ -116,29 +116,6 @@ pub mod plugin {
             })
             .with(Collider::Solid);
         println!("SNAKE!");
-    
-        // commands
-        //     // texture
-        //     .spawn(TextComponents {
-        //         style: Style {
-        //             align_self: AlignSelf::FlexStart,
-        //             position: Rect {
-        //                 left: Val::Percent(80.0),
-        //                 ..Default::default()
-        //             },
-        //             ..Default::default()
-        //         },
-        //         text: Text {
-        //             value: "Score".to_string(),
-        //             font: asset_server.load("fonts/arcade.ttf"),
-        //             style: TextStyle {
-        //                 font_size: 60.0,
-        //                 color: Color::WHITE,
-        //             },
-        //         },
-        //         ..Default::default()
-        //     })
-        //     .with(ScoreText);
     }
 }
 
