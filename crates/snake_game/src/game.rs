@@ -1,9 +1,20 @@
 pub mod game_data {
     use bevy::prelude::*;
+    #[derive(Default)]
+    pub struct GameState{
+        // difficulty: f64, Todo with ui
+        pub score: usize,
+        pub playing: bool,
+        pub play_area: f32,
+        pub cell_size: f64,
+        pub prev_scores: Vec<usize>,
+    }
     pub struct GameTimer(pub Timer);
-    pub struct EventGameOver{}
-    pub struct EventRestart{}
+    pub struct EventGameOver;
+    pub struct EventRestart;
+    pub struct EventUpdateScores;
     pub struct ScoreText;
+    pub struct PrevScoreText;
 }
 
 pub mod game_functions {
@@ -23,6 +34,27 @@ pub mod game_functions {
     ) {
         for _ in game_over_reader.iter(&game_over_event) {
             println!("GAME OVER");
+            let mut new_scores: Vec<usize> = Vec::new();
+            let mut bump_down: usize = 9999999999999;
+            let score = &game.score;
+            for scores in game.prev_scores.iter() {
+                println!("{} {}", game.score, scores);
+                if scores > score {
+                    new_scores.push(*scores);
+                } else if scores < score && bump_down == 9999999999999 {
+                    bump_down = *scores;
+                    new_scores.push(game.score);
+                } else {
+                    new_scores.push(bump_down);
+                    bump_down = *scores;
+                }
+            }
+
+            new_scores.iter().for_each(|item|{
+                println!("{}", item);
+            });
+
+            game.prev_scores = new_scores;
             game.score = 0;
             game.playing = false;
             for (snake_entity, _) in snake_query.iter() {
@@ -70,15 +102,6 @@ pub mod game_functions {
                     .with(Collider::Snake);
                 game.playing = true;
             }
-        }
-    }
-    
-    pub fn update_score (
-        game: Res<GameState>,
-        mut score_query: Query<(&mut Text, &ScoreText)>
-    ) {
-        for (mut text, _) in score_query.iter_mut() {
-            text.value = format!("Score {}", game.score);
         }
     }
 }

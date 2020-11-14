@@ -199,21 +199,10 @@ pub mod snake_data {
         LEFT,
         RIGHT
     }
-
     pub enum Collider {
         Solid,
         Snake,
         Fruit,
         Tail
     }
-
-    #[derive(Default)]
-    pub struct GameState{
-        // difficulty: f64, Todo with ui
-        pub score: usize,
-        pub playing: bool,
-        pub play_area: f32,
-        pub cell_size: f64,
-    }
-
 }
