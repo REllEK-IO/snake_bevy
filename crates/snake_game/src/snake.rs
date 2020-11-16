@@ -110,6 +110,18 @@ pub mod snake_functions {
                                     commands.despawn(fruit_entity);
                                 }
                                 println!(" S C O R E : {} !", game.score);
+                                break;
+                            }
+                            for (_, segment) in tail_query.iter() {
+                                if fruit_x == segment.position.x() && fruit_y == segment.position.y(){
+                                    game.score += 1;
+                                    grow_tail.send(EventGrowTail{});
+                                    for (fruit_entity, _) in fruit_query.iter() {
+                                        commands.despawn(fruit_entity);
+                                    }
+                                    println!(" S C O R E : {} !", game.score);
+                                    break;
+                                }
                             }
                         }
                         _ => (),
