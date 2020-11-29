@@ -2,10 +2,7 @@ pub mod game_ui {
     use crate::game::game_data::*;
     use bevy::prelude::*;
 
-    pub fn init_ui(
-        mut commands: Commands,
-        asset_server: Res<AssetServer>
-    ) {
+    pub fn init_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
         commands
             // texture
             .spawn(TextComponents {
@@ -13,7 +10,7 @@ pub mod game_ui {
                     align_self: AlignSelf::FlexStart,
                     position: Rect {
                         left: Val::Percent(82.5),
-                        bottom:Val::Percent(2.0),
+                        bottom: Val::Percent(2.0),
                         ..Default::default()
                     },
                     ..Default::default()
@@ -36,7 +33,7 @@ pub mod game_ui {
                     align_self: AlignSelf::FlexEnd,
                     position: Rect {
                         right: Val::Percent(10.0),
-                        top:Val::Percent(2.0),
+                        top: Val::Percent(2.0),
                         ..Default::default()
                     },
                     ..Default::default()
@@ -54,9 +51,9 @@ pub mod game_ui {
             .with(PrevScoreText);
     }
 
-    pub fn update_high_scores (
+    pub fn update_high_scores(
         game: Res<GameState>,
-        mut score_query: Query<(&mut Text, &PrevScoreText)>
+        mut score_query: Query<(&mut Text, &PrevScoreText)>,
     ) {
         for (mut text, _) in score_query.iter_mut() {
             let mut score_board = String::from("High Scores \n");
@@ -72,10 +69,7 @@ pub mod game_ui {
             text.value = score_board;
         }
     }
-    pub fn update_score (
-        game: Res<GameState>,
-        mut score_query: Query<(&mut Text, &ScoreText)>
-    ) {
+    pub fn update_score(game: Res<GameState>, mut score_query: Query<(&mut Text, &ScoreText)>) {
         for (mut text, _) in score_query.iter_mut() {
             text.value = format!("Score: {}", game.score);
         }
