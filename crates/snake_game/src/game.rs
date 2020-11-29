@@ -94,11 +94,11 @@ pub mod game_functions {
                         ..Default::default()
                     })
                     .with(Snake {
-                        direction: SnakeDirection::RIGHT,
+                        direction: SnakeDirection::Right,
                         position: snake_pos,
                         last_position: last_pos,
                         movement_locked: false,
-                        next_move: SnakeDirection::RIGHT,
+                        next_move: SnakeDirection::Right,
                     })
                     .with(Collider::Snake);
                 game.playing = true;

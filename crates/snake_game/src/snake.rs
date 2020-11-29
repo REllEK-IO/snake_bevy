@@ -15,20 +15,7 @@ pub mod snake_functions {
         if timer.0.finished && game.playing {
             for (mut snake, mut transform) in query.iter_mut() {
                 snake.last_position = snake.position;
-                match snake.direction {
-                    SnakeDirection::UP => {
-                        snake.position = Vec2::new(snake.position.x(), snake.position.y() + 1.0)
-                    }
-                    SnakeDirection::LEFT => {
-                        snake.position = Vec2::new(snake.position.x() - 1.0, snake.position.y())
-                    }
-                    SnakeDirection::RIGHT => {
-                        snake.position = Vec2::new(snake.position.x() + 1.0, snake.position.y())
-                    }
-                    SnakeDirection::DOWN => {
-                        snake.position = Vec2::new(snake.position.x(), snake.position.y() - 1.0)
-                    }
-                }
+                snake.position = snake.position + snake.direction.into_vec2();
                 transform.translation = snake_pos_to_translation(snake.position, game.cell_size);
                 move_tail.send(EventMoveTail {
                     position: snake.last_position,
@@ -38,39 +25,11 @@ pub mod snake_functions {
         }
 
         for (mut snake, _) in query.iter_mut() {
-            if keyboard_input.pressed(KeyCode::Left) {
-                match snake.direction {
-                    SnakeDirection::RIGHT => (),
-                    _ => {
-                        snake.next_move = SnakeDirection::LEFT;
-                    }
-                }
-            }
-
-            if keyboard_input.pressed(KeyCode::Right) {
-                match snake.direction {
-                    SnakeDirection::LEFT => (),
-                    _ => {
-                        snake.next_move = SnakeDirection::RIGHT;
-                    }
-                }
-            }
-
-            if keyboard_input.pressed(KeyCode::Down) {
-                match snake.direction {
-                    SnakeDirection::UP => (),
-                    _ => {
-                        snake.next_move = SnakeDirection::DOWN;
-                    }
-                }
-            }
-
-            if keyboard_input.pressed(KeyCode::Up) {
-                match snake.direction {
-                    SnakeDirection::DOWN => (),
-                    _ => {
-                        snake.next_move = SnakeDirection::UP;
-                    }
+            for direction in SnakeDirection::enumerate() {
+                if keyboard_input.pressed(direction.into_keycode())
+                    && !direction.is_inverse(snake.direction)
+                {
+                    snake.next_move = direction;
                 }
             }
 
@@ -214,6 +173,7 @@ pub mod snake_functions {
 }
 pub mod snake_data {
     use bevy::prelude::*;
+
     pub struct Fruit;
 
     pub struct Snake {
@@ -228,21 +188,64 @@ pub mod snake_data {
         pub position: Vec2,
     }
 
-    pub struct EventGrowTail {}
+    pub struct EventGrowTail;
     pub struct EventMoveTail {
         pub position: Vec2,
     }
-    #[derive(Copy, Clone)]
+
+    #[derive(Copy, Clone, PartialEq, Eq)]
     pub enum SnakeDirection {
-        UP,
-        DOWN,
-        LEFT,
-        RIGHT,
+        Up,
+        Down,
+        Left,
+        Right,
     }
+
     pub enum Collider {
         Solid,
         Snake,
         Fruit,
         Tail,
+    }
+
+    impl SnakeDirection {
+        pub fn into_vec2(self) -> Vec2 {
+            use SnakeDirection::*;
+            match self {
+                Up => Vec2::new(0.0, 1.0),
+                Left => Vec2::new(-1.0, 0.0),
+                Right => Vec2::new(1.0, 0.0),
+                Down => Vec2::new(0.0, -1.0),
+            }
+        }
+
+        pub fn inverse(self) -> Self {
+            use SnakeDirection::*;
+            match self {
+                Up => Down,
+                Left => Right,
+                Right => Left,
+                Down => Up,
+            }
+        }
+
+        pub fn is_inverse(self, other: Self) -> bool {
+            self.inverse() == other
+        }
+
+        pub fn into_keycode(self) -> KeyCode {
+            use SnakeDirection::*;
+            match self {
+                Up => KeyCode::Up,
+                Down => KeyCode::Down,
+                Right => KeyCode::Right,
+                Left => KeyCode::Left,
+            }
+        }
+
+        pub fn enumerate() -> impl Iterator<Item = Self> {
+            use SnakeDirection::*;
+            [Up, Down, Left, Right].iter().copied()
+        }
     }
 }
