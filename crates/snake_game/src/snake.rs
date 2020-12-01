@@ -52,27 +52,21 @@ pub mod snake_functions {
         fruit_query: Query<(Entity, &Fruit)>,
     ) {
         let mut hit = false;
+
         if timer.0.finished && game.playing {
             for (_, snake) in snake_query.iter() {
                 for (_, collider, collider_transform) in collider_query.iter() {
                     match collider {
                         Collider::Snake => {
                             let grid_max = (game.play_area / game.cell_size as f32 / 2.0).round();
-                            if snake.position.x().abs() == grid_max
-                                || snake.position.y().abs() == grid_max
-                            {
-                                hit = true;
-                            }
+                            hit = snake.position.x().abs() == grid_max
+                                || snake.position.y().abs() == grid_max;
                         }
 
                         Collider::Tail => {
-                            for (_, tail_segment) in tail_query.iter() {
-                                if snake.position.x() == tail_segment.position.x()
-                                    && snake.position.y() == tail_segment.position.y()
-                                {
-                                    hit = true;
-                                }
-                            }
+                            hit = tail_query
+                                .iter()
+                                .any(|(_, tail_segment)| snake.position == tail_segment.position);
                         }
 
                         Collider::Fruit => {
@@ -110,8 +104,9 @@ pub mod snake_functions {
                 }
             }
         }
+
         if hit {
-            game_over.send(EventGameOver {});
+            game_over.send(EventGameOver);
         }
     }
 
