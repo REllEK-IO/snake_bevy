@@ -6,7 +6,7 @@ mod tests {
     }
 }
 
-pub mod snake;
 pub mod fruit;
 pub mod game;
+pub mod snake;
 pub mod ui;

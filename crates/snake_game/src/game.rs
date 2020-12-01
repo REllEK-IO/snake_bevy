@@ -1,7 +1,7 @@
 pub mod game_data {
     use bevy::prelude::*;
     #[derive(Default)]
-    pub struct GameState{
+    pub struct GameState {
         // difficulty: f64, Todo with ui
         pub score: usize,
         pub playing: bool,
@@ -18,11 +18,11 @@ pub mod game_data {
 }
 
 pub mod game_functions {
-    use bevy::prelude::*;
     use super::game_data::*;
     use crate::snake::snake_data::*;
+    use bevy::prelude::*;
 
-    pub fn game_over (
+    pub fn game_over(
         mut commands: Commands,
         mut game_over_reader: Local<EventReader<EventGameOver>>,
         game_over_event: Res<Events<EventGameOver>>,
@@ -30,7 +30,7 @@ pub mod game_functions {
         mut restart: ResMut<Events<EventRestart>>,
         snake_query: Query<(Entity, &Snake)>,
         tail_query: Query<(Entity, &Tail)>,
-        fruit_query: Query<(Entity, &Fruit)>
+        fruit_query: Query<(Entity, &Fruit)>,
     ) {
         for _ in game_over_reader.iter(&game_over_event) {
             println!("GAME OVER");
@@ -43,7 +43,7 @@ pub mod game_functions {
                 } else if scores <= score && bump_down == 9999999999999 {
                     bump_down = *scores;
                     new_scores.push(game.score);
-                } else if *score != 0{
+                } else if *score != 0 {
                     new_scores.push(bump_down);
                     bump_down = *scores;
                 } else {
@@ -65,9 +65,9 @@ pub mod game_functions {
             }
             restart.send(EventRestart {});
         }
-    } 
-    
-    pub fn restart (
+    }
+
+    pub fn restart(
         mut commands: Commands,
         mut restart_reader: Local<EventReader<EventRestart>>,
         restart_event: Res<Events<EventRestart>>,
@@ -85,16 +85,20 @@ pub mod game_functions {
                     .spawn(UiCameraComponents::default())
                     .spawn(SpriteComponents {
                         material: materials.add(Color::rgb(0.0, 1.0, 0.0).into()),
-                        transform: Transform::from_translation(Vec3::new(0.0, snake_pos.y() * game.cell_size as f32, 0.0)),
+                        transform: Transform::from_translation(Vec3::new(
+                            0.0,
+                            snake_pos.y() * game.cell_size as f32,
+                            0.0,
+                        )),
                         sprite: Sprite::new(Vec2::new(cell_size - 2.0, cell_size - 2.0)),
                         ..Default::default()
                     })
-                    .with(Snake { 
-                        direction: SnakeDirection::RIGHT,
+                    .with(Snake {
+                        direction: SnakeDirection::Right,
                         position: snake_pos,
                         last_position: last_pos,
                         movement_locked: false,
-                        next_move: SnakeDirection::RIGHT
+                        next_move: SnakeDirection::Right,
                     })
                     .with(Collider::Snake);
                 game.playing = true;

@@ -1,7 +1,4 @@
-use bevy::{
-    prelude::*,
-    render::pass::ClearColor,
-};
+use bevy::{prelude::*, render::pass::ClearColor};
 
 use snake_plugin::plugin::*;
 
