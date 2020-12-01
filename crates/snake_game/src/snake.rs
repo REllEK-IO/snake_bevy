@@ -59,46 +59,47 @@ pub mod snake_functions {
                     match collider {
                         Collider::Snake => {
                             let grid_max = (game.play_area / game.cell_size as f32 / 2.0).round();
-                            hit = snake.position.x().abs() == grid_max
+                            hit = hit
+                                || snake.position.x().abs() == grid_max
                                 || snake.position.y().abs() == grid_max;
                         }
 
                         Collider::Tail => {
-                            hit = tail_query
-                                .iter()
-                                .any(|(_, tail_segment)| snake.position == tail_segment.position);
+                            hit = hit
+                                || tail_query
+                                    .iter()
+                                    .any(|(_, segment)| snake.position == segment.position);
                         }
 
                         Collider::Fruit => {
-                            let fruit_x = (collider_transform.translation.x()
-                                / game.cell_size as f32)
-                                .round();
-                            let fruit_y = (collider_transform.translation.y()
-                                / game.cell_size as f32)
-                                .round();
-                            if fruit_x == snake.position.x() && fruit_y == snake.position.y() {
-                                game.score += 1;
-                                grow_tail.send(EventGrowTail {});
-                                for (fruit_entity, _) in fruit_query.iter() {
-                                    commands.despawn(fruit_entity);
-                                }
-                                println!(" S C O R E : {} !", game.score);
-                                break;
-                            }
-                            for (_, segment) in tail_query.iter() {
-                                if fruit_x == segment.position.x()
-                                    && fruit_y == segment.position.y()
-                                {
+                            let fruit_position = Vec2::new(
+                                collider_transform.translation.x() / game.cell_size as f32,
+                                collider_transform.translation.y() / game.cell_size as f32,
+                            )
+                            .round();
+                            let mut scored = |fruit_pos, snake_pos| {
+                                if fruit_pos == snake_pos {
                                     game.score += 1;
-                                    grow_tail.send(EventGrowTail {});
+                                    grow_tail.send(EventGrowTail);
                                     for (fruit_entity, _) in fruit_query.iter() {
                                         commands.despawn(fruit_entity);
                                     }
-                                    println!(" S C O R E : {} !", game.score);
-                                    break;
+                                    Some(game.score)
+                                } else {
+                                    None
                                 }
+                            };
+                            let score = scored(fruit_position, snake.position).or_else(|| {
+                                tail_query.iter().find_map(|(_, segment)| {
+                                    scored(fruit_position, segment.position)
+                                })
+                            });
+                            if let Some(x) = score {
+                                println!(" S C O R E: {}", x);
+                                break;
                             }
                         }
+
                         _ => (),
                     }
                 }
