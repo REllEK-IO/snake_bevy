@@ -77,8 +77,8 @@ pub mod snake_functions {
                                 collider_transform.translation.y() / game.cell_size as f32,
                             )
                             .round();
-                            let mut scored = |fruit_pos, snake_pos| {
-                                if fruit_pos == snake_pos {
+                            let scored = |position| {
+                                if fruit_position == position {
                                     game.score += 1;
                                     grow_tail.send(EventGrowTail);
                                     for (fruit_entity, _) in fruit_query.iter() {
@@ -89,11 +89,11 @@ pub mod snake_functions {
                                     None
                                 }
                             };
-                            let score = scored(fruit_position, snake.position).or_else(|| {
-                                tail_query.iter().find_map(|(_, segment)| {
-                                    scored(fruit_position, segment.position)
-                                })
-                            });
+                            let score = tail_query
+                                .iter()
+                                .map(|(_, segment)| segment.position)
+                                .chain(std::iter::once(snake.position))
+                                .find_map(scored);
                             if let Some(x) = score {
                                 println!(" S C O R E: {}", x);
                                 break;
@@ -113,10 +113,11 @@ pub mod snake_functions {
 
     fn snake_pos_to_translation(snake_pos: Vec2, c_size: f64) -> Vec3 {
         return Vec3::new(
-            (snake_pos.x() * c_size as f32).floor(),
-            (snake_pos.y() * c_size as f32).floor(),
+            snake_pos.x() * c_size as f32,
+            snake_pos.y() * c_size as f32,
             0.0,
-        );
+        )
+        .floor();
     }
 
     pub fn move_tail_listener(
