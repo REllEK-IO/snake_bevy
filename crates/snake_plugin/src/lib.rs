@@ -12,6 +12,9 @@ pub mod plugin {
         fruit::fruit_logic::*, game::game_data::*, game::game_functions::*, snake::snake_data::*,
         snake::snake_functions::*, ui::game_ui::*,
     };
+
+    pub struct SnakeGame;
+
     impl Plugin for SnakeGame {
         fn build(&self, app: &mut AppBuilder) {
             app.add_resource(GameState {
@@ -44,7 +47,6 @@ pub mod plugin {
             .add_event::<EventRestart>();
         }
     }
-    pub struct SnakeGame;
 
     fn setup(
         mut commands: Commands,
@@ -57,6 +59,7 @@ pub mod plugin {
         game.prev_scores.push(0);
         game.prev_scores.push(0);
         game.prev_scores.push(0);
+
         commands
             .spawn(Camera2dComponents::default())
             .spawn(UiCameraComponents::default())

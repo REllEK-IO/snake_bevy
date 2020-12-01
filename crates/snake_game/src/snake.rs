@@ -46,14 +46,14 @@ pub mod snake_functions {
         mut game: ResMut<GameState>,
         mut grow_tail: ResMut<Events<EventGrowTail>>,
         mut game_over: ResMut<Events<EventGameOver>>,
-        mut snake_query: Query<(Entity, &mut Snake)>,
+        snake_query: Query<(Entity, &Snake)>,
         tail_query: Query<(Entity, &Tail)>,
         collider_query: Query<(Entity, &Collider, &Transform)>,
         fruit_query: Query<(Entity, &Fruit)>,
     ) {
         let mut hit = false;
         if timer.0.finished && game.playing {
-            for (_, snake) in snake_query.iter_mut() {
+            for (_, snake) in snake_query.iter() {
                 for (_, collider, collider_transform) in collider_query.iter() {
                     match collider {
                         Collider::Snake => {
@@ -64,6 +64,7 @@ pub mod snake_functions {
                                 hit = true;
                             }
                         }
+
                         Collider::Tail => {
                             for (_, tail_segment) in tail_query.iter() {
                                 if snake.position.x() == tail_segment.position.x()
@@ -73,6 +74,7 @@ pub mod snake_functions {
                                 }
                             }
                         }
+
                         Collider::Fruit => {
                             let fruit_x = (collider_transform.translation.x()
                                 / game.cell_size as f32)
@@ -171,6 +173,7 @@ pub mod snake_functions {
         }
     }
 }
+
 pub mod snake_data {
     use bevy::prelude::*;
 

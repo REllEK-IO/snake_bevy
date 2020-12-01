@@ -26,6 +26,7 @@ pub mod game_ui {
                 ..Default::default()
             })
             .with(ScoreText);
+
         commands
             // texture
             .spawn(TextComponents {
@@ -69,6 +70,7 @@ pub mod game_ui {
             text.value = score_board;
         }
     }
+
     pub fn update_score(game: Res<GameState>, mut score_query: Query<(&mut Text, &ScoreText)>) {
         for (mut text, _) in score_query.iter_mut() {
             text.value = format!("Score: {}", game.score);
