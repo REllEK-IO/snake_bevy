@@ -36,7 +36,7 @@ pub mod fruit_logic {
                 let mut found_overlap = false;
     
                 for pos in known_positions.iter() {
-                    if rand_x == pos.x() && rand_y == pos.y(){
+                    if rand_x == pos.x && rand_y == pos.y{
                         found_overlap = true;
                         break;
                     }
@@ -50,14 +50,14 @@ pub mod fruit_logic {
     
         if fruit_query.iter().len() == 0 && game.playing{
             commands
-                .spawn(SpriteComponents {
+                .spawn_bundle(SpriteBundle {
                     material: materials.add(Color::rgb(1.0, 0.0, 0.0).into()),
                     transform: Transform::from_translation(Vec3::new(rand_x, rand_y, 0.0)),
                     sprite: Sprite::new(Vec2::new(20.0, 20.0)),
                     ..Default::default()
                 })
-                .with(Fruit {})
-                .with(Collider::Fruit);
+                .insert(Fruit {})
+                .insert(Collider::Fruit);
         }
     }
 }

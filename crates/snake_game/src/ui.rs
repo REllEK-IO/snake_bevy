@@ -8,7 +8,7 @@ pub mod game_ui {
     ) {
         commands
             // texture
-            .spawn(TextComponents {
+            .spawn_bundle(TextBundle {
                 style: Style {
                     align_self: AlignSelf::FlexStart,
                     position: Rect {
@@ -18,20 +18,24 @@ pub mod game_ui {
                     },
                     ..Default::default()
                 },
-                text: Text {
-                    value: "Score".to_string(),
-                    font: asset_server.load("fonts/Pixeboy.ttf"),
-                    style: TextStyle {
+                text: Text::with_section (
+                    "Score".to_string(),
+                    TextStyle {
                         font_size: 30.0,
+                        font: asset_server.load("fonts/Pixeboy.ttf"),
                         color: Color::WHITE,
                     },
-                },
+                    TextAlignment {
+                        vertical: VerticalAlign::Center,
+                        horizontal: HorizontalAlign::Center,
+                    },                    
+                ),
                 ..Default::default()
             })
-            .with(ScoreText);
+            .insert(ScoreText);
         commands
             // texture
-            .spawn(TextComponents {
+            .spawn_bundle(TextBundle {
                 style: Style {
                     align_self: AlignSelf::FlexEnd,
                     position: Rect {
@@ -41,17 +45,21 @@ pub mod game_ui {
                     },
                     ..Default::default()
                 },
-                text: Text {
-                    value: "High Scores \n\n1.  0 \n\n2.  0 \n\n3.  0".to_string(),
-                    font: asset_server.load("fonts/Pixeboy.ttf"),
-                    style: TextStyle {
+                text: Text::with_section (
+                    "High Scores \n\n1.  0 \n\n2.  0 \n\n3.  0".to_string(),
+                    TextStyle {
                         font_size: 30.0,
+                        font: asset_server.load("fonts/Pixeboy.ttf"),
                         color: Color::WHITE,
                     },
-                },
+                    TextAlignment {
+                        vertical: VerticalAlign::Center,
+                        horizontal: HorizontalAlign::Center,
+                    },  
+                ),
                 ..Default::default()
             })
-            .with(PrevScoreText);
+            .insert(PrevScoreText);
     }
 
     pub fn update_high_scores (
@@ -69,7 +77,7 @@ pub mod game_ui {
                 i += 1;
                 // println!("{}", score);
             }
-            text.value = score_board;
+            text.sections[0].value = score_board;
         }
     }
     pub fn update_score (
@@ -77,7 +85,7 @@ pub mod game_ui {
         mut score_query: Query<(&mut Text, &ScoreText)>
     ) {
         for (mut text, _) in score_query.iter_mut() {
-            text.value = format!("Score: {}", game.score);
+            text.sections[0].value = format!("Score: {}", game.score);
         }
     }
 }

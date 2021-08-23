@@ -18,7 +18,7 @@ pub mod plugin {
     };
     impl Plugin for SnakeGame {
         fn build(&self, app: &mut AppBuilder) {
-            app.add_resource(GameState { 
+            app.insert_resource(GameState { 
                     // difficulty: 25.0,
                     score: 0,
                     playing: true, 
@@ -26,7 +26,7 @@ pub mod plugin {
                     cell_size: 25.0,
                     prev_scores: Vec::new()
                 })
-                .add_resource(GameTimer(Timer::from_seconds(0.25, true)))
+                .insert_resource(GameTimer(Timer::from_seconds(0.25, true)))
                 // .add_resource( Grid {
                 //     cells: Vec::new()
                 // })
@@ -62,59 +62,64 @@ pub mod plugin {
         game.prev_scores.push(0);
         game.prev_scores.push(0);
         commands
-            .spawn(Camera2dComponents::default())
-            .spawn(UiCameraComponents::default())
-            .spawn(SpriteComponents {
+            .spawn_bundle(OrthographicCameraBundle::new_2d());
+        commands
+            .spawn_bundle(UiCameraBundle::default());
+        commands
+            .spawn_bundle(SpriteBundle {
                 material: materials.add(Color::rgb(0.0, 1.0, 0.0).into()),
-                transform: Transform::from_translation(Vec3::new(0.0, snake_pos.y() * game.cell_size as f32, 0.0)),
+                transform: Transform::from_translation(Vec3::new(0.0, snake_pos.y * game.cell_size as f32, 0.0)),
                 sprite: Sprite::new(Vec2::new(cell_size - 2.0, cell_size - 2.0)),
                 ..Default::default()
             })
-            .with(Snake { 
+            .insert(Snake { 
                 direction: SnakeDirection::RIGHT,
                 position: snake_pos,
                 last_position: last_pos,
                 movement_locked: false,
                 next_move: SnakeDirection::RIGHT
             })
-            .with(Collider::Snake);
+            .insert(Collider::Snake);
             let wall_material = materials.add(Color::rgb(0.8, 0.8, 0.8).into());
             let wall_thickness = cell_size;
             let bounds = Vec2::new(game.play_area, game.play_area);
         
-        commands
             // left
-            .spawn(SpriteComponents {
+        commands
+            .spawn_bundle(SpriteBundle {
                 material: wall_material.clone(),
-                transform: Transform::from_translation(Vec3::new(-bounds.x() / 2.0, 0.0, 0.0)),
-                sprite: Sprite::new(Vec2::new(wall_thickness, bounds.y() + wall_thickness)),
+                transform: Transform::from_translation(Vec3::new(-bounds.x / 2.0, 0.0, 0.0)),
+                sprite: Sprite::new(Vec2::new(wall_thickness, bounds.y + wall_thickness)),
                 ..Default::default()
             })
-            .with(Collider::Solid)
+            .insert(Collider::Solid);
             // right
-            .spawn(SpriteComponents {
+        commands
+            .spawn_bundle(SpriteBundle {
                 material: wall_material.clone(),
-                transform: Transform::from_translation(Vec3::new(bounds.x() / 2.0, 0.0, 0.0)),
-                sprite: Sprite::new(Vec2::new(wall_thickness, bounds.y() + wall_thickness)),
+                transform: Transform::from_translation(Vec3::new(bounds.x / 2.0, 0.0, 0.0)),
+                sprite: Sprite::new(Vec2::new(wall_thickness, bounds.y + wall_thickness)),
                 ..Default::default()
             })
-            .with(Collider::Solid)
+            .insert(Collider::Solid);
             // bottom
-            .spawn(SpriteComponents {
+        commands
+            .spawn_bundle(SpriteBundle {
                 material: wall_material.clone(),
-                transform: Transform::from_translation(Vec3::new(0.0, -bounds.y() / 2.0, 0.0)),
-                sprite: Sprite::new(Vec2::new(bounds.x() + wall_thickness, wall_thickness)),
+                transform: Transform::from_translation(Vec3::new(0.0, -bounds.y / 2.0, 0.0)),
+                sprite: Sprite::new(Vec2::new(bounds.x + wall_thickness, wall_thickness)),
                 ..Default::default()
             })
-            .with(Collider::Solid)
+            .insert(Collider::Solid);
             // top
-            .spawn(SpriteComponents {
+        commands
+            .spawn_bundle(SpriteBundle {
                 material: wall_material,
-                transform: Transform::from_translation(Vec3::new(0.0, bounds.y() / 2.0, 0.0)),
-                sprite: Sprite::new(Vec2::new(bounds.x() + wall_thickness, wall_thickness)),
+                transform: Transform::from_translation(Vec3::new(0.0, bounds.y / 2.0, 0.0)),
+                sprite: Sprite::new(Vec2::new(bounds.x + wall_thickness, wall_thickness)),
                 ..Default::default()
             })
-            .with(Collider::Solid);
+            .insert(Collider::Solid);
         println!("SNAKE!");
     }
 }
